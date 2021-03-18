@@ -137,7 +137,7 @@ def FeedHandler(id:str, feedUpdate: FeedUpdate):
 def FeedHandler(id: str):
     DeleteFeed(id)
 
-@app.
+
 
 @app.get('/api/settings')
 def SettingsHandler():
