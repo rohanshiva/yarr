@@ -1,10 +1,10 @@
 import os
-import math 
+import math
 from typing import Optional
 from fastapi import FastAPI, Request, status, HTTPException
 
-from fastapi.staticfiles import StaticFiles   
-from fastapi.responses import FileResponse  
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from deta import Deta
 from folder import create_folder, rename_folder, toggle_folder_expanded, delete_folder
@@ -13,39 +13,39 @@ from item import create_items, update_item_status, list_items, count_items, feed
 from refresh import fetch_all_feeds
 from crawler import discover_feed, convert_items
 
-deta = Deta(os.getenv("DETA_PROJECT_KEY"))
-folders_db = deta.Base('folders')
-feeds_db = deta.Base('feeds')
-items_db = deta.Base('items')
-errors_db = deta.Base('feed_errors')
-settings_db = deta.Base('settings')
+deta = Deta()
+folders_db = deta.Base("folders")
+feeds_db = deta.Base("feeds")
+items_db = deta.Base("items")
+errors_db = deta.Base("feed_errors")
+settings_db = deta.Base("settings")
 
 app = FastAPI()
-app.mount("/static/", StaticFiles(directory="assets"), name='static')  
-
-
-
-
-
+app.mount("/static/", StaticFiles(directory="assets"), name="static")
 
 
 class New_Folder(BaseModel):
     title: str
 
+
 class Folder(BaseModel):
     title: Optional[str] = None
     is_expanded: Optional[bool] = None
+
 
 class Feed_Update(BaseModel):
     title: Optional[str] = None
     folder_id: Optional[str] = None
 
+
 class Feed_Create_Form(BaseModel):
     url: str
     folder_id: Optional[str] = None
 
+
 class Item_Update_Form(BaseModel):
     status: Optional[str] = None
+
 
 class Settings(BaseModel):
     filter: Optional[str] = ""
@@ -53,28 +53,29 @@ class Settings(BaseModel):
     feed_list_width: Optional[int] = 300
     item_list_handler: Optional[int] = 300
     sort_newest_first: Optional[bool] = True
-    theme_name: Optional[str] = 'light'
-    theme_font: Optional[str] = ''
+    theme_name: Optional[str] = "light"
+    theme_font: Optional[str] = ""
     theme_size: Optional[int] = 1
     refresh_rate: Optional[int] = 0
 
+
 default_settings = {
-        'key': 'settings',
-    	"filter":            "",
-		"feed":              "",
-		"feed_list_width":   300,
-		"item_list_width":   300,
-		"sort_newest_first": True,
-		"theme_name":        "light",
-		"theme_font":        "",
-		"theme_size":        1,
-		"refresh_rate":      0,
+    "key": "settings",
+    "filter": "",
+    "feed": "",
+    "feed_list_width": 300,
+    "item_list_width": 300,
+    "sort_newest_first": True,
+    "theme_name": "light",
+    "theme_font": "",
+    "theme_size": 1,
+    "refresh_rate": 0,
 }
 
 
-@app.get("/")  
-def render_page(request: Request):  
-    return FileResponse('assets/index.html')
+@app.get("/")
+def render_page(request: Request):
+    return FileResponse("assets/index.html")
 
 
 @app.get("/api/folders")
@@ -82,34 +83,36 @@ def folder_list_handler():
     try:
         list = get_all(folders_db, {})
         for l in list:
-            l['id'] = l.pop('key')
+            l["id"] = l.pop("key")
         return list
     except:
         raise HTTPException(status_code=400, detail="Failed to fetch folders.")
+
 
 @app.post("/api/folders")
 def folder_list_handler(folder: New_Folder):
     try:
         if len(folder.title) == 0:
-            return {'Error':'Folder title is missing.'}
+            return {"Error": "Folder title is missing."}
         res = create_folder(folder.title)
         return res
     except:
-        return {'Error': 'Failed to create folder'}
+        return {"Error": "Failed to create folder"}
 
 
-@app.put('/api/folders/{id}', status_code=200)
+@app.put("/api/folders/{id}", status_code=200)
 def folder_handler(id: str, folder: Folder):
     try:
         if folder.title != None and len(folder.title) != 0:
             res = rename_folder(id, folder.title)
         if folder.is_expanded != None:
             res = toggle_folder_expanded(id, folder.is_expanded)
-        return 
+        return
     except:
-        return {'Error': 'Bad request'}
+        return {"Error": "Bad request"}
 
-@app.delete('/api/folders/{id}')
+
+@app.delete("/api/folders/{id}")
 def folder_handler(id: str):
     try:
         delete_folder(id)
@@ -117,11 +120,11 @@ def folder_handler(id: str):
         raise HTTPException(status_code=400, detail="Failed to delete")
 
 
-@app.post('/api/feeds/refresh', status_code=200)
+@app.post("/api/feeds/refresh", status_code=200)
 def feed_refresh_handler():
     try:
         res = fetch_all_feeds()
-        return True 
+        return True
     except:
         raise HTTPException(status_code=400, detail="Failed to refresh")
 
@@ -130,23 +133,23 @@ def feed_refresh_handler():
 def feed_errors_handler():
     try:
         errors = get_all(errors_db, {})
-        return errors 
+        return errors
     except:
         raise HTTPException(status_code=400, detail="Failed to fetch errors")
 
 
-@app.get('/api/feeds')
+@app.get("/api/feeds")
 def feed_list_handler():
     try:
         list = get_all(feeds_db, {})
         for l in list:
-            l['id'] = l.pop('key')
+            l["id"] = l.pop("key")
         return list
     except:
         return "Failed to fetch feeds."
 
 
-@app.post('/api/feeds')
+@app.post("/api/feeds")
 def feed_list_handler(feed_req: Feed_Create_Form):
     try:
         feed, err = discover_feed(feed_req.url)
@@ -156,17 +159,17 @@ def feed_list_handler(feed_req: Feed_Create_Form):
         if feed != None:
             entries = feed.entries
             feed = feed.feed
-            
+
             description = ""
-            if feed.get('subtitle')!=None:
+            if feed.get("subtitle") != None:
                 description = feed.subtitle
 
             title = ""
-            if feed.get('title')!=None:
+            if feed.get("title") != None:
                 title = feed.title
-            
+
             link = ""
-            if feed.get('link')!=None:
+            if feed.get("link") != None:
                 link = feed.link
 
             feed_link = feed_req.url
@@ -176,13 +179,13 @@ def feed_list_handler(feed_req: Feed_Create_Form):
             stored_feed = create_feed(title, description, link, feed_link, folder_id)
 
             if stored_feed != None:
-                items = convert_items(entries, stored_feed['key'])
+                items = convert_items(entries, stored_feed["key"])
 
                 create_items(items)
                 image = None
                 # if 'image' in feed.keys():
                 #     image = feed.image
-                stored_feed['icon'] = image
+                stored_feed["icon"] = image
 
                 feeds_db.put(stored_feed)
                 # Todo
@@ -191,10 +194,10 @@ def feed_list_handler(feed_req: Feed_Create_Form):
             return {"status": "notfound"}
     except:
         raise HTTPException(status_code=400, detail="Failed to make feed")
-    
 
-@app.put('/api/feeds/{id}')
-def feed_handler(id:str, feed_update: Feed_Update):
+
+@app.put("/api/feeds/{id}")
+def feed_handler(id: str, feed_update: Feed_Update):
     try:
         feed = feeds_db.get(id)
         if feed == None:
@@ -206,11 +209,13 @@ def feed_handler(id:str, feed_update: Feed_Update):
     except:
         raise HTTPException(status_code=405)
 
-@app.delete('/api/feeds/{id}')
+
+@app.delete("/api/feeds/{id}")
 def feed_handler(id: str):
     delete_feed(id)
 
-@app.put('/api/items/{id}')
+
+@app.put("/api/items/{id}")
 def item_handler(id: str, item_update: Item_Update_Form):
     try:
         if item_update.status != None:
@@ -218,74 +223,84 @@ def item_handler(id: str, item_update: Item_Update_Form):
     except:
         raise HTTPException(status_code=400)
 
-@app.get('/api/items')
-def item_list_handler(page: int = None, folder_id: str = None, feed_id: str = None, status: str = None, search:str = None, oldest_first:bool = None):
+
+@app.get("/api/items")
+def item_list_handler(
+    page: int = None,
+    folder_id: str = None,
+    feed_id: str = None,
+    status: str = None,
+    search: str = None,
+    oldest_first: bool = None,
+):
     per_page = 20
     cur_page = 1
-    
+
     if page != None:
         cur_page = int(page)
     filter = {}
     if folder_id != None:
-        filter['folder_id'] = folder_id
-    
+        filter["folder_id"] = folder_id
+
     if feed_id != None:
-        filter['feed_id'] = feed_id
+        filter["feed_id"] = feed_id
 
     if status != None:
-        filter['status'] = status
-    
+        filter["status"] = status
+
     if search != None:
-        filter['search'] = search
+        filter["search"] = search
 
     newest_first = True
 
-    items, count = list_items(filter, (cur_page-1)*per_page, per_page, newest_first)
+    items, count = list_items(filter, (cur_page - 1) * per_page, per_page, newest_first)
 
     print(count)
-    return {'page': {
-        'cur': cur_page,
-        'num': int(math.ceil(float(count)/float(per_page)))
-                    },
-            'list': items 
+    return {
+        "page": {
+            "cur": cur_page,
+            "num": int(math.ceil(float(count) / float(per_page))),
+        },
+        "list": items,
     }
-    
-@app.get('/api/settings')
+
+
+@app.get("/api/settings")
 def settings_handler():
     try:
-        settings = settings_db.get('settings')
+        settings = settings_db.get("settings")
         if settings == None:
             settings_db.put(default_settings)
             settings = default_settings
-            del settings['key']
+            del settings["key"]
             return settings
-        del settings['key']
+        del settings["key"]
         return settings
     except:
         raise HTTPException(status_code=400, detail="Failed to fetch settings")
 
-@app.put('/api/settings')
+
+@app.put("/api/settings")
 def settings_handler(settings: Settings):
-        updates = {}
-        updates['filter'] = settings.filter
-        updates['feed'] = settings.feed
-        updates['feed_list_width'] = settings.feed_list_width
-        updates['item_list_handler'] = settings.item_list_handler
-        updates['sort_newest_first'] = settings.sort_newest_first
-        updates['theme_name'] = settings.theme_name
-        updates['theme_font'] = settings.theme_font
-        updates['theme_size'] = settings.theme_size
-        updates['refresh_rate'] = 0
-        settings_db.put(updates, 'settings')
-        return settings
+    updates = {}
+    updates["filter"] = settings.filter
+    updates["feed"] = settings.feed
+    updates["feed_list_width"] = settings.feed_list_width
+    updates["item_list_handler"] = settings.item_list_handler
+    updates["sort_newest_first"] = settings.sort_newest_first
+    updates["theme_name"] = settings.theme_name
+    updates["theme_font"] = settings.theme_font
+    updates["theme_size"] = settings.theme_size
+    updates["refresh_rate"] = 0
+    settings_db.put(updates, "settings")
+    return settings
 
 
-
-@app.get('/api/status')
+@app.get("/api/status")
 def status_handler():
     try:
-        res = {'running': 0}
-        res['stats'] = feed_stats()
+        res = {"running": 0}
+        res["stats"] = feed_stats()
         return res
     except:
         raise HTTPException(status_code=400)

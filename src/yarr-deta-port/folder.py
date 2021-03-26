@@ -1,8 +1,8 @@
 from deta import Deta
-deta = Deta(os.getenv("DETA_PROJECT_KEY"))
-folders_db = deta.Base('folders')
-feeds_db = deta.Base('feeds')
 
+deta = Deta()
+folders_db = deta.Base("folders")
+feeds_db = deta.Base("feeds")
 
 
 def get_all(db, query):
@@ -19,10 +19,10 @@ def create_folder(title):
     folders = get_all(folders_db, {})
 
     for folder in folders:
-        if folder['title']==title:
+        if folder["title"] == title:
             return folder
     try:
-        res = folders_db.put({'title':title, 'is_expanded':expanded})
+        res = folders_db.put({"title": title, "is_expanded": expanded})
         return res
     except:
         print("Something bad happened.")
@@ -32,7 +32,7 @@ def create_folder(title):
 def rename_folder(id, title):
     try:
         folder = folders_db.get(id)
-        folder['title'] = title
+        folder["title"] = title
         folders_db.put(folder)
         return True
     except:
@@ -42,38 +42,40 @@ def rename_folder(id, title):
 def toggle_folder_expanded(id, is_expanded):
     try:
         folder = folders_db.get(id)
-        folder['is_expanded'] = is_expanded
+        folder["is_expanded"] = is_expanded
         folders_db.put(folder)
         return True
     except:
         return False
 
+
 def put_items(items):
     n = len(items)
 
-    if (n <= 24):
-        res = feeds_db.put_many(items);
+    if n <= 24:
+        res = feeds_db.put_many(items)
         return
 
     start = 0
     end = 0
-    while(end!=n):
-        end+=24
-        if (end > n):
+    while end != n:
+        end += 24
+        if end > n:
             end = n
         try:
             res = feeds_db.put_many(items[start:end])
         except:
-            print('Failed to push items')
+            print("Failed to push items")
         start = end
+
 
 def delete_folder(id):
     try:
         folders_db.delete(id)
-        query = {"folder_id":id}
+        query = {"folder_id": id}
         feeds = get_all(feeds_db, query)
         for feed in feeds:
-            feed['folder_id'] = None
+            feed["folder_id"] = None
         put_items(feeds)
         return True
     except:

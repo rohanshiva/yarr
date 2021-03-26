@@ -1,8 +1,9 @@
-import html 
+import html
 from deta import Deta
-deta = Deta(os.getenv("DETA_PROJECT_KEY"))
-feeds_db = deta.Base('feeds')
-items_db = deta.Base('items')
+
+deta = Deta()
+feeds_db = deta.Base("feeds")
+items_db = deta.Base("items")
 
 
 def get_all(db, query):
@@ -20,29 +21,40 @@ def create_feed(title, description, link, feed_link, folder_id):
     if title == "":
         title = "<???>"
     try:
-        feed = feeds_db.put({'title': title, 'description': description, 'link': link, 'feed_link': feed_link, 'folder_id': folder_id})
+        feed = feeds_db.put(
+            {
+                "title": title,
+                "description": description,
+                "link": link,
+                "feed_link": feed_link,
+                "folder_id": folder_id,
+            }
+        )
         return feed
     except:
         print("Failed to create feed.")
         return None
-    
+
+
 def rename_feed(id, title):
     try:
         feed = feeds_db.get(id)
-        feed['title'] = title
+        feed["title"] = title
         feeds_db.put(feed)
         return True
     except:
         return False
-    
+
+
 def update_feed_folder(id, folder):
     try:
         feed = feeds_db.get(id)
-        feed['folder_id'] = folder
+        feed["folder_id"] = folder
         feeds_db.put(feed)
         return True
     except:
         return False
+
 
 def delete_feed(id):
     try:
@@ -52,9 +64,9 @@ def delete_feed(id):
     except:
         return False
 
+
 def delete_items(feed_id):
-    query = {"feed_id":feed_id}
+    query = {"feed_id": feed_id}
     items = get_all(items_db, query)
     for item in items:
-        items_db.delete(item['key'])
-
+        items_db.delete(item["key"])
