@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>yarr!</title>
+    <link rel="stylesheet" href="./static/stylesheets/bootstrap.min.css">
+    <link rel="stylesheet" href="./static/stylesheets/app.css">
+    <link rel="icon shortcut" href="./static/graphicarts/anchor.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+</head>
+<body class="theme-light">
+    <div id="app" class="d-flex" :class="{'feed-selected': feedSelected !== null, 'item-selected': itemSelected !== null}" v-cloak>
+        <!-- feed list -->
+        <div id="col-feed-list" class="vh-100 position-relative d-flex flex-column border-right flex-shrink-0" :style="{width: feedListWidth+'px'}">
+            <drag :width="feedListWidth" @resize="resizeFeedList"></drag>
+            <div class="p-2 toolbar d-flex align-items-center">
+                <div class="icon mx-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-anchor"><circle cx="12" cy="5" r="3"></circle><line x1="12" y1="22" x2="12" y2="8"></line><path d="M5 12H2a10 10 0 0 0 20 0h-3"></path></svg>
+                </div>
+                <div class="flex-grow-1"></div>
+                <button class="toolbar-item"
+                        :class="{active: filterSelected == 'unread'}"
+                        v-b-tooltip.hover.bottom="'Unread'"
+                        @click="filterSelected = 'unread'">
+                    <span class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-circle"><circle cx="12" cy="12" r="10"></circle></svg>
+                    </span>
+                </button>
+                <button class="toolbar-item"
+                        :class="{active: filterSelected == 'starred'}"
+                        v-b-tooltip.hover.bottom="'Starred'"
+                        @click="filterSelected = 'starred'">
+                    <span class="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-star"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    </span>
+                </button>
+                <button class="toolbar-item"
+                        :class="{active: filterSelected == ''}"
+                        v-b-tooltip.hover.bottom="'All'"
+                        @click="filterSelected = ''">
+                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-bar-chart-2"><line x1="4" y1="6" x2="14" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="8" y2="18"></line></svg>
+                    </span>
+                </button>
+                <div class="flex-grow-1"></div>
+                <b-dropdown
+                        right no-caret lazy variant="link"
+                        class="settings-dropdown"
+                        toggle-class="toolbar-item px-2"
+                        ref="menuDropdown">
+                    <template v-slot:button-content class="toolbar-item">
+                        <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-more-horizontal"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></span>
+                    </template>
+                    <b-dropdown-item-button @click="showSettings('create')">
+                        <span class="icon mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-plus"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>
+                        New Feed
+                    </b-dropdown-item-button>
+                    <b-dropdown-item-button @click.stop="showSettings('manage')">
+                        <span class="icon mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-list"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></span>
+                        Manage Feeds
+                    </b-dropdown-item-button>
+                    <b-dropdown-divider></b-dropdown-divider>
+                    <b-dropdown-item-button @click.stop="fetchAllFeeds()">
+                        <span class="icon mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rotate-cw"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></span>
+                        Refresh Feeds
+                    </b-dropdown-item-button>
+
+                    <b-dropdown-divider></b-dropdown-divider>
+
+                    <b-dropdown-header>Refresh</b-dropdown-header>
+                    <b-dropdown-item-button @click.stop="refreshRate = min" v-for="min in [0, 60]">
+                        <span class="icon mr-1" :class="{invisible: refreshRate != min}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                        <span v-if="min ==  0">Manually</span>
+                        <span v-if="min == 60">Every hour</span>
+                    </b-dropdown-item-button>
+
+                    <b-dropdown-divider></b-dropdown-divider>
+
+                    <b-dropdown-header>Sort by</b-dropdown-header>
+                    <b-dropdown-item-button @click.stop="itemSortNewestFirst=true">
+                        <span class="icon mr-1" :class="{invisible: !itemSortNewestFirst}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                        Newest First
+                    </b-dropdown-item-button>
+                    <b-dropdown-item-button @click="itemSortNewestFirst=false">
+                        <span class="icon mr-1" :class="{invisible: itemSortNewestFirst}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                        Oldest First
+                    </b-dropdown-item-button>
+                    <b-dropdown-divider></b-dropdown-divider>
+                    <b-dropdown-header>Subscriptions</b-dropdown-header>
+                    <b-dropdown-form id="opml-import-form" enctype="multipart/form-data">
+                        <input type="file"
+                               id="opml-import"
+                               @change="importOPML"
+                               name="opml"
+                               style="opacity: 0; width: 1px; height: 0; position: absolute; z-index: -1;">
+                        <label class="dropdown-item mb-0 cursor-pointer" for="opml-import">
+                            <span class="icon mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span>
+                            Import
+                        </label>
+                    </b-dropdown-form>
+                    <b-dropdown-item href="./opml/export">
+                        <span class="icon mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></span>
+                        Export
+                    </b-dropdown-item>
+                    <b-dropdown-divider></b-dropdown-divider>
+                    <b-dropdown-item-button @click="showSettings('shortcuts')">
+                        <span class="icon mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-help-circle"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
+                        Shortcuts
+                    </b-dropdown-item-button>
+                    <b-dropdown-divider v-if="authenticated"></b-dropdown-divider>
+                    <b-dropdown-item-button v-if="authenticated" @click="logout()">
+                        <span class="icon mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></span>
+                        Log out
+                    </b-dropdown-item-button>
+                </b-dropdown>
+            </div>
+            <div id="feed-list-scroll" class="p-2 overflow-auto border-top flex-grow-1">
+                <label class="selectgroup">
+                    <input type="radio" name="feed" value="" v-model="feedSelected">
+                    <div class="selectgroup-label d-flex align-items-center w-100">
+                        <span class="icon mr-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-layers"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg></span>
+                        <span class="flex-fill text-left text-truncate" v-if="filterSelected=='unread'">All Unread</span>
+                        <span class="flex-fill text-left text-truncate" v-if="filterSelected=='starred'">All Starred</span>
+                        <span class="flex-fill text-left text-truncate" v-if="filterSelected==''">All Feeds</span>
+                        <span class="counter text-right">{{ filteredTotalStats }}</span>
+                    </div>
+                </label>
+                <div v-for="folder in foldersWithFeeds">
+                    <label class="selectgroup mt-1"
+                           :class="{'d-none': filterSelected
+                                              && !filteredFolderStats[folder.id]
+                                              && (!itemSelected || feedsById[itemSelectedDetails.feed_id].folder_id != folder.id)}">
+                        <input type="radio" name="feed" :value="'folder:'+folder.id" v-model="feedSelected">
+                        <div class="selectgroup-label d-flex align-items-center w-100" v-if="folder.id">
+                            <span class="icon mr-2"
+                                  :class="{expanded: folder.is_expanded}"
+                                  @click.prevent="toggleFolderExpanded(folder)">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </span>
+                            <span class="flex-fill text-left text-truncate">{{ folder.title }}</span>
+                            <span class="counter text-right">{{ filteredFolderStats[folder.id] || '' }}</span>
+                        </div>
+                    </label>
+                    <div v-show="!folder.id || folder.is_expanded" class="mt-1" :class="{'pl-3': folder.id}">
+                        <label class="selectgroup"
+                              :class="{'d-none': filterSelected
+                                                 && !filteredFeedStats[feed.id]
+                                                 && (!itemSelected || itemSelectedDetails.feed_id != feed.id)}"
+                               v-for="feed in folder.feeds">
+                            <input type="radio" name="feed" :value="'feed:'+feed.id" v-model="feedSelected">
+                            <div class="selectgroup-label d-flex align-items-center w-100">
+                                <span class="icon mr-2" v-if="!feed.has_icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></span>
+                                <span class="icon mr-2" v-else><img v-lazy="'./api/feeds/'+feed.id+'/icon'" alt=""></span>
+                                <span class="flex-fill text-left text-truncate">{{ feed.title }}</span>
+                                <span class="counter text-right">{{ filteredFeedStats[feed.id] || '' }}</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="p-2 toolbar d-flex align-items-center border-top flex-shrink-0" v-if="loading.feeds">
+                <span class="icon loading mx-2"></span>
+                <span class="text-truncate cursor-default noselect">Refreshing ({{ loading.feeds }} left)</span>
+            </div>
+        </div>
+        <!-- item list -->
+        <div id="col-item-list" class="vh-100 position-relative d-flex flex-column border-right flex-shrink-0" :style="{width: itemListWidth+'px'}">
+            <drag :width="itemListWidth" @resize="resizeItemList"></drag>
+            <div class="px-2 toolbar d-flex align-items-center">
+                <button class="toolbar-item mr-2 d-block d-md-none"
+                        @click="feedSelected = null"
+                        v-b-tooltip.hover.bottom="'Show Feeds'">
+                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-left"><polyline points="15 18 9 12 15 6"></polyline></svg></span>
+                </button>
+                <div class="input-icon flex-grow-1">
+                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+                    <!-- id used by keybindings -->
+                    <input id="searchbar" class="d-block toolbar-search" type="" v-model="itemSearch">
+                </div>
+                <button class="toolbar-item ml-2"
+                        @click="markItemsRead()"
+                        v-if="filterSelected == 'unread'"
+                        v-b-tooltip.hover.bottom="'Mark All Read'">
+                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                </button>
+            </div>
+            <div id="item-list-scroll" class="p-2 overflow-auto border-top flex-grow-1" v-scroll="loadMoreItems" ref="itemlist">
+                <label v-for="item in items" :key="item.id"
+                       class="selectgroup">
+                    <input type="radio" name="item" :value="item.id" v-model="itemSelected">
+                    <div class="selectgroup-label d-flex flex-column">
+                        <div style="line-height: 1; opacity: .7; margin-bottom: .1rem;" class="d-flex align-items-center">
+                            <transition name="indicator">
+                                <span class="icon icon-small mr-1" v-if="item.status=='unread'"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-circle"><circle cx="12" cy="12" r="10"></circle></svg>
+                                </span>
+                                <span class="icon icon-small mr-1" v-if="item.status=='starred'"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-star"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                </span>
+                            </transition>
+                            <small class="flex-fill text-truncate mr-1">
+                                {{ feedsById[item.feed_id].title }}
+                            </small>
+                            <small class="flex-shrink-0"><relative-time :val="item.date"/></small>
+                        </div>
+                        <div>{{ item.title || 'untitled' }}</div>
+                    </div>
+                </label>
+                <button class="btn btn-link btn-block loading my-3" v-if="itemsPage.cur < itemsPage.num"></button>
+            </div>
+        </div>
+        <!-- item show -->
+        <div id="col-item" class="vh-100 d-flex flex-column w-100" style="min-width: 0;">
+            <div class="toolbar px-2 d-flex align-items-center" v-if="itemSelected">
+                <button class="toolbar-item"
+                        @click="toggleItemStarred(itemSelectedDetails)"
+                        v-b-tooltip.hover.bottom="'Mark Starred'">
+                    <span class="icon" v-if="itemSelectedDetails.status=='starred'" ><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-star"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    </span>
+                    <span class="icon" v-else-if="itemSelectedDetails.status!='starred'" ><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-star"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
+                </button>
+                <button class="toolbar-item"
+                        :disabled="itemSelectedDetails.status=='starred'"
+                        v-b-tooltip.hover.bottom="'Mark Unread'"
+                        @click="toggleItemRead(itemSelectedDetails)">
+                    <span class="icon" v-if="itemSelectedDetails.status=='unread'"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-circle"><circle cx="12" cy="12" r="10"></circle></svg>
+                    </span>
+                    <span class="icon" v-if="itemSelectedDetails.status!='unread'"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-circle"><circle cx="12" cy="12" r="10"></circle></svg></span>
+                </button>
+                <a class="toolbar-item" id="content-appearance" v-b-tooltip.hover.bottom="'Appearance'" tabindex="0">
+                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-sliders"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg></span>
+                </a>
+                <button class="toolbar-item"
+                        :class="{active: itemSelectedReadability}"
+                        @click="getReadable(itemSelectedDetails)"
+                        v-b-tooltip.hover.bottom="'Read Here'">
+                    <span class="icon" :class="{'icon-loading': loading.readability}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg></span>
+                </button>
+                <a class="toolbar-item" :href="itemSelectedDetails.link" target="_blank" v-b-tooltip.hover.bottom="'Open Link'">
+                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-external-link"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></span>
+                </a>
+                <b-popover target="content-appearance" triggers="focus" placement="bottom">
+                    <div class="p-1" style="width: 200px;">
+                        <div class="d-flex">
+                            <label class="themepicker">
+                                <input type="radio" name="settingsTheme" value="light" v-model="theme.name">
+                                <div class="themepicker-label appearance-option"></div>
+                            </label>
+                            <label class="themepicker">
+                                <input type="radio" name="settingsTheme" value="sepia" v-model="theme.name">
+                                <div class="themepicker-label appearance-option"></div>
+                            </label>
+                            <label class="themepicker">
+                                <input type="radio" name="settingsTheme" value="night" v-model="theme.name">
+                                <div class="themepicker-label appearance-option"></div>
+                            </label>
+                        </div>
+                        <div class="mt-2">
+                            <label class="selectgroup">
+                                <input type="radio" name="font" value="" v-model="theme.font">
+                                <div class="selectgroup-label appearance-option">
+                                    System Default
+                                </div>
+                            </label>
+                            <label class="selectgroup" v-for="f in fonts" :key="f">
+                                <input type="radio" name="font" :value="f" v-model="theme.font">
+                                <div class="selectgroup-label appearance-option":style="{'font-family': f}">
+                                    {{ f }}
+                                </div>
+                            </label>
+                        </div>
+                        <div class="btn-group d-flex mt-2">
+                            <button class="btn btn-outline appearance-option"
+                                    style="font-size: 0.8rem" @click="incrFont(-1)">A</button>
+                            <button class="btn btn-outline appearance-option"
+                                    style="font-size: 1.2rem" @click="incrFont(1)">A</button>
+                        </div>
+                    </div>
+                </b-popover>
+                <div class="flex-grow-1"></div>
+                <button class="toolbar-item" @click="itemSelected=null" v-b-tooltip.hover.bottom="'Close Article'">
+                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+                </button>
+            </div>
+            <div v-if="itemSelected"
+                 ref="content"
+                 class="content px-4 pt-3 pb-5 border-top overflow-auto"
+                 :style="{'font-family': theme.font, 'font-size': theme.size + 'rem'}">
+                <h1><b>{{ itemSelectedDetails.title }}</b></h1>
+                <div class="text-muted">
+                    <div>{{ feedsById[itemSelectedDetails.feed_id].title }}</div>
+                    <time>{{ formatDate(itemSelectedDetails.date) }}</time>
+                </div>
+                <hr>
+                <audio class="w-100" controls v-if="itemSelectedDetails.podcast_url" :src="itemSelectedDetails.podcast_url"></audio>
+                <div v-html="itemSelectedContent"></div>
+            </div>
+        </div>
+        <b-modal id="settings-modal" hide-header hide-footer lazy>
+            <button class="btn btn-link outline-none float-right p-2 mr-n2 mt-n2" style="line-height: 1" @click="$bvModal.hide('settings-modal')">
+                <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+            </button>
+            <div v-if="settings=='create'">
+                <p class="cursor-default"><b>New Feed</b></p>
+                <form action="" @submit.prevent="createFeed(event)" class="mt-4">
+                    <label for="feed-url">URL</label>
+                    <input id="feed-url" name="url" type="url" class="form-control" required autocomplete="off" :readonly="feedNewChoice.length > 0">
+                    <label for="feed-folder" class="mt-3 d-block">
+                        Folder
+                        <a href="#" class="float-right text-decoration-none" @click.prevent="createNewFeedFolder()">new folder</a>
+                    </label>
+                    <select class="form-control" id="feed-folder" name="folder_id" ref="newFeedFolder">
+                        <option value="">---</option>
+                        <option :value="folder.id" v-for="folder in folders">{{ folder.title }}</option>
+                    </select>
+                    <div class="mt-4" v-if="feedNewChoice.length">
+                        <p class="mb-2">
+                            Multiple feeds found. Choose one below:
+                            <a href="#" class="float-right text-decoration-none" @click.prevent="resetFeedChoice()">cancel</a>
+                        </p>
+                        <label class="selectgroup" v-for="choice in feedNewChoice">
+                            <input type="radio" name="feedToAdd" :value="choice.url" v-model="feedNewChoiceSelected">
+                            <div class="selectgroup-label">
+                                <div class="text-truncate">{{ choice.title }}</div>
+                                <div class="text-truncate" :class="{light: choice.title}">{{ choice.url }}</div>
+                            </div>
+                        </label>
+                    </div>
+                    <button class="btn btn-block btn-default mt-3" :class="{loading: loading.newfeed}" type="submit">Add</button>
+                </form>
+            </div>
+            <div v-else-if="settings=='manage'">
+                <p class="cursor-default"><b>Manage Feeds</b></p>
+                <div v-for="folder in foldersWithFeeds" class="mt-4" :key="folder.id">
+                    <div class="list-row d-flex align-items-center">
+                        <div class="w-100 text-truncate" v-if="folder.id">
+                            <span class="icon mr-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
+                            {{ folder.title }}
+                        </div>
+                        <div class="flex-shrink-0" v-if="folder.id">
+                            <b-dropdown right no-caret lazy variant="link" class="settings-dropdown" toggle-class="text-decoration-none">
+                                <template v-slot:button-content>
+                                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-more-vertical"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></span>
+                                </template>
+                                <b-dropdown-header>{{ folder.title }}</b-dropdown-header>
+                                <b-dropdown-item @click.prevent="renameFolder(folder)">Rename</b-dropdown-item>
+                                <b-dropdown-divider></b-dropdown-divider>
+                                <b-dropdown-item class="dropdown-danger"
+                                   @click.prevent="deleteFolder(folder)">
+                                    Delete
+                                </b-dropdown-item>
+                            </b-dropdown>
+                        </div>
+                    </div>
+                    <div v-for="feed in folder.feeds" class="list-row d-flex align-items-center" :key="feed.id">
+                        <div class="w-100 text-truncate">
+                            <span class="icon mr-2" v-if="!feed.has_icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></span>
+                            <span class="icon mr-2" v-else><img v-lazy="'./api/feeds/'+feed.id+'/icon'" alt=""></span>
+                            {{ feed.title }}
+                        </div>
+                        <span class="icon flex-shrink-0 mx-2"
+                              v-b-tooltip.hover.top="feed_errors[feed.id]"
+                              v-if="feed_errors[feed.id]">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-alert-circle"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        </span>
+                        <div class="flex-shrink-0">
+                            <b-dropdown right no-caret lazy variant="link" class="settings-dropdown" toggle-class="text-decoration-none">
+                                <template v-slot:button-content>
+                                    <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-more-vertical"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></span>
+                                </template>
+                                <b-dropdown-header>{{ feed.title }}</b-dropdown-header>
+                                <b-dropdown-item :href="feed.link" target="_blank" v-if="feed.link">Visit Website</b-dropdown-item>
+                                <b-dropdown-divider v-if="feed.link"></b-dropdown-divider>
+                                <b-dropdown-item @click.prevent="renameFeed(feed)">Rename</b-dropdown-item>
+                                <b-dropdown-divider v-if="folders.length"></b-dropdown-divider>
+                                <b-dropdown-header v-if="folders.length">Move to...</b-dropdown-header>
+                                <b-dropdown-item @click="moveFeed(feed, null)" v-if="feed.folder_id">
+                                    ---
+                                </b-dropdown-item>
+                                <b-dropdown-item-button
+                                    v-if="folder.id != feed.folder_id"
+                                    v-for="folder in folders"
+                                    @click="moveFeed(feed, folder)">
+                                    <span class="icon mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
+                                    {{ folder.title }}
+                                </b-dropdown-item-button>
+                                <b-dropdown-item-button @click="moveFeedToNewFolder(feed)">
+                                    <span class="text-muted icon mr-1"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-plus"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>
+                                    <span class="text-muted">New Folder</span>
+                                </b-dropdown-item-button>
+                                <b-dropdown-divider></b-dropdown-divider>
+                                <b-dropdown-item class="dropdown-danger"
+                                   @click.prevent="deleteFeed(feed)">
+                                    Delete
+                                </b-dropdown-item>
+                            </b-dropdown>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div v-else-if="settings=='shortcuts'">
+                <p class="cursor-default"><b>Keyboard Shortcuts</b></p>
+
+                <table class="table table-borderless table-sm table-compact m-0">
+                    <tr>
+                        <td>
+                            <kbd>1</kbd> /
+                            <kbd>2</kbd> /
+                            <kbd>3</kbd>
+                        </td>
+                        <td>show unread / starred / all feeds</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>/</kbd></td>
+                        <td>focus the search bar</td>
+                    </tr>
+
+                    <tr><td colspan=2>&nbsp;</td></tr>
+                    <tr>
+                        <td>
+                            <kbd>j</kbd>
+                            <kbd>k</kbd>
+                        </td>
+                        <td>next / prev article</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <kbd>l</kbd>
+                            <kbd>h</kbd>
+                        </td>
+                        <td>next / prev feed</td>
+                    </tr>
+
+                    <tr><td colspan=2>&nbsp;</td></tr>
+                    <tr>
+                        <td><kbd>R</kbd></td>
+                        <td>mark all articles as read</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <kbd>r</kbd>
+                        </td>
+                        <td>toggle an article as read / unread</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>s</kbd></td>
+                        <td>toggle an article as starred / unstarred</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>o</kbd></td>
+                        <td>open an article's link</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- polyfill -->
+    <script src="./static/javascripts/fetch.umd.js"></script>
+    <script src="./static/javascripts/url-polyfill.min.js"></script>
+    <!-- external -->
+    <script src="./static/javascripts/vue.min.js"></script>
+    <script src="./static/javascripts/vue-lazyload.js"></script>
+    <script src="./static/javascripts/popper.min.js"></script>
+    <script src="./static/javascripts/bootstrap-vue.min.js"></script>
+    <script src="./static/javascripts/Readability.min.js"></script>
+    <script src="./static/javascripts/purify.min.js"></script>
+    <!-- internal -->
+    <script src="./static/javascripts/api.js"></script>
+    <script src="./static/javascripts/app.js"></script>
+    <script src="./static/javascripts/keybindings.js"></script>
+</body>
+</html>
