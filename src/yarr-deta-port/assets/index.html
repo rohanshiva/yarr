@@ -148,8 +148,8 @@
                                v-for="feed in folder.feeds">
                             <input type="radio" name="feed" :value="'feed:'+feed.id" v-model="feedSelected">
                             <div class="selectgroup-label d-flex align-items-center w-100">
-                                <span class="icon mr-2" v-if="!feed.has_icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></span>
-                                <span class="icon mr-2" v-else><img v-lazy="'./api/feeds/'+feed.id+'/icon'" alt=""></span>
+                                <span class="icon mr-2" v-if="!feed.icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></span>
+                                <span class="icon mr-2" v-else><img v-bind:src="feed.icon" alt=""></span>
                                 <span class="flex-fill text-left text-truncate">{{ feed.title }}</span>
                                 <span class="counter text-right">{{ filteredFeedStats[feed.id] || '' }}</span>
                             </div>
@@ -351,8 +351,8 @@
                     </div>
                     <div v-for="feed in folder.feeds" class="list-row d-flex align-items-center" :key="feed.id">
                         <div class="w-100 text-truncate">
-                            <span class="icon mr-2" v-if="!feed.has_icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></span>
-                            <span class="icon mr-2" v-else><img v-lazy="'./api/feeds/'+feed.id+'/icon'" alt=""></span>
+                            <span class="icon mr-2" v-if="!feed.icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-rss"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></span>
+                            <span class="icon mr-2" v-else><img v-bind:src="feed.icon" alt=""></span>
                             {{ feed.title }}
                         </div>
                         <span class="icon flex-shrink-0 mx-2"

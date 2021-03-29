@@ -112,10 +112,11 @@ def folder_handler(id: str, folder: Folder):
         return {"Error": "Bad request"}
 
 
-@app.delete("/api/folders/{id}")
+@app.delete("/api/folders/{id}", status_code=204)
 def folder_handler(id: str):
     try:
         delete_folder(id)
+        return
     except:
         raise HTTPException(status_code=400, detail="Failed to delete")
 
@@ -158,6 +159,7 @@ def feed_list_handler(feed_req: Feed_Create_Form):
 
         if feed != None:
             entries = feed.entries
+
             feed = feed.feed
 
             description = ""
@@ -182,9 +184,11 @@ def feed_list_handler(feed_req: Feed_Create_Form):
                 items = convert_items(entries, stored_feed["key"])
 
                 create_items(items)
-                image = None
-                # if 'image' in feed.keys():
-                #     image = feed.image
+
+                image = False
+                if feed.get("image") != None:
+                    print(feed.image.href)
+                    image = feed.image.href
                 stored_feed["icon"] = image
 
                 feeds_db.put(stored_feed)
@@ -210,9 +214,10 @@ def feed_handler(id: str, feed_update: Feed_Update):
         raise HTTPException(status_code=405)
 
 
-@app.delete("/api/feeds/{id}")
+@app.delete("/api/feeds/{id}", status_code=204)
 def feed_handler(id: str):
     delete_feed(id)
+    return
 
 
 @app.put("/api/items/{id}")
@@ -274,8 +279,9 @@ def settings_handler():
             settings = default_settings
             del settings["key"]
             return settings
-        del settings["key"]
-        return settings
+        else:
+            del settings["key"]
+            return settings
     except:
         raise HTTPException(status_code=400, detail="Failed to fetch settings")
 

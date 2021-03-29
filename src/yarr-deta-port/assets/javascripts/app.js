@@ -346,7 +346,18 @@ var vm = new Vue({
       var query = this.getItemsQuery()
       this.loading.items = true
       return api.items.list(query).then(function(data) {
+        console.log(data.list)
         vm.items = data.list
+        if (query.oldest_first === true) {
+          vm.items.sort(function(a, b) {
+            return Date.parse(a.date) - Date.parse(b.date);
+          });   
+        }
+        else {
+          vm.items.sort(function(a, b) {
+            return Date.parse(b.date) - Date.parse(a.date);
+          });   
+        }
         vm.itemsPage = data.page
         vm.loading.items = false
       })
@@ -361,6 +372,16 @@ var vm = new Vue({
         query.page = this.itemsPage.cur + 1
         api.items.list(query).then(function(data) {
           vm.items = vm.items.concat(data.list)
+          if (query.oldest_first === true) {
+            vm.items.sort(function(a, b) {
+              return Date.parse(a.date) - Date.parse(b.date);
+            });   
+          }
+          else {
+            vm.items.sort(function(a, b) {
+              return Date.parse(b.date) - Date.parse(a.date);
+            });   
+          }
           vm.itemsPage = data.page
           vm.loading.items = false
         })

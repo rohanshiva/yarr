@@ -69,11 +69,11 @@ def list_query_predicate(filter):
         filter["title?contains"] = filter.pop("search")
 
     if filter.get("folder_id") == None:
+        print(filter)
         return get_all(items_db, filter)
 
     else:
         folder_query = {"folder_id": filter["folder_id"]}
-        print(folder_query)
         feeds = get_all(feeds_db, folder_query)
         filter.pop("folder_id")
         query = []
