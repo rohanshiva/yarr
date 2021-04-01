@@ -20,7 +20,7 @@ def reset_feed_errors():
 
 
 def update_new(items, links):
-    print("No errors so far")
+
     new_items = []
     for item in items:
         if links.get(item["link"]) == None:

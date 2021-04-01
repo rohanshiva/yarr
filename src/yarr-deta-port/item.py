@@ -69,7 +69,6 @@ def list_query_predicate(filter):
         filter["title?contains"] = filter.pop("search")
 
     if filter.get("folder_id") == None:
-        print(filter)
         return get_all(items_db, filter)
 
     else:
@@ -81,7 +80,7 @@ def list_query_predicate(filter):
             d = {"feed_id": feed["key"]}
             d.update(filter)
             query.append(d)
-        print(query)
+
         return get_all(items_db, query)
 
 
@@ -91,7 +90,7 @@ def list_items(filter, offset, limit, newest_first):
     result = result[offset:]
     if len(result) > limit:
         result = result[:limit]
-    print(len(result))
+
     for l in result:
         l["id"] = l.pop("key")
     return result, count

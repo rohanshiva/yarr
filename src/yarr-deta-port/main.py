@@ -187,7 +187,7 @@ def feed_list_handler(feed_req: Feed_Create_Form):
 
                 image = False
                 if feed.get("image") != None:
-                    print(feed.image.href)
+
                     image = feed.image.href
                 stored_feed["icon"] = image
 
@@ -260,7 +260,7 @@ def item_list_handler(
 
     items, count = list_items(filter, (cur_page - 1) * per_page, per_page, newest_first)
 
-    print(count)
+
     return {
         "page": {
             "cur": cur_page,
